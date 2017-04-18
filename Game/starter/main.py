@@ -2,6 +2,7 @@ from room import Room
 from player import Player
 from item import Item
 from monster import Monster
+from npc import Jani
 import os
 import updater
 
@@ -29,8 +30,9 @@ def createWorld():
 
     i = Item("Rock", "This is just a rock.")
     i.putInRoom(office)
-    player.location = manager
+    player.location = accountant
     Monster("Bob the monster", 20, office)
+    Jani("Jani", liability, player) # this is how you make NPC's
 
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -39,10 +41,10 @@ def printSituation():
     clear()
     print(player.location.desc)
     print()
-    if player.location.hasMonsters():
-        print("This room contains the following monsters:")
-        for m in player.location.monsters:
-            print(m.name)
+    if player.location.hasPeople():
+        print("This room contains the following people:") # not monsters
+        for p in player.location.people:
+            print(p.name)
         print()
     if player.location.hasItems():
         print("This room contains the following items:")
@@ -53,12 +55,17 @@ def printSituation():
     for e in player.location.exitNames():
         print(e)
     print()
+    print()
 
 def showHelp():
     clear()
     print("go <direction> -- moves you in the given direction")
     print("inventory -- opens your inventory")
+    print("cases -- shows your current cases")
+    print("describe <case> -- gives description and difficulty of case")
     print("pickup <item> -- picks up the item")
+    print("talk <person> -- talks to a person")
+    print("argue <case> -- enter the courtroom to argue your case")
     print()
     input("Press enter to continue...")
 
@@ -74,9 +81,17 @@ while playing and player.alive:
         commandSuccess = True
         command = input("What now? ")
         commandWords = command.split()
+
+#### BASICS ####
         if commandWords[0].lower() == "go":   #cannot handle multi-word directions
             player.goDirection(commandWords[1]) 
             timePasses = True
+        elif commandWords[0].lower() == "help":
+            showHelp()
+        elif commandWords[0].lower() == "exit":
+            playing = False
+
+#### INVENTORY ####
         elif commandWords[0].lower() == "pickup":  #can handle multi-word objects
             targetName = command[7:]
             target = player.location.getItemByName(targetName)
@@ -86,12 +101,31 @@ while playing and player.alive:
                 print("No such item.")
                 commandSuccess = False
         elif commandWords[0].lower() == "inventory":
-            player.showInventory()        
-        elif commandWords[0].lower() == "help":
-            showHelp()
-        elif commandWords[0].lower() == "exit":
-            playing = False
-        elif commandWords[0].lower() == "attack":
+            player.showInventory()
+
+#### CASES ####
+        elif commandWords[0].lower() == "cases": #lists cases
+            player.showCases()
+        elif commandWords[0].lower() == "describe": #describes one case
+            targetCase = command[9:]
+            target = player.getCaseByName(targetCase)
+            if target != False:
+                print(target.desc)
+            else:
+                print("No such case.")
+                commandSuccess = False
+
+        elif commandWords[0].lower() == "argue": # this enters the case named <case>
+            enterCase = command[6:]
+            for i in cases:
+                if i == enterCase:
+                    enterCase.battle()
+                else:
+                    print("No such case.")
+
+
+#### INTERACT ####
+        elif commandWords[0].lower() == "attack": # needs to be reworked
             targetName = command[7:]
             target = player.location.getMonsterByName(targetName)
             if target != False:
@@ -99,12 +133,16 @@ while playing and player.alive:
             else:
                 print("No such monster.")
                 commandSuccess = False
+        elif commandWords[0].lower() == "talk": # initiate conversation with NPC
+            targetName = command[5:]
+            target = player.location.getPeopleByName(targetName)
+            if target != False:
+                target.talk()
+            else:
+                print("No such person.")
         else:
             print("Not a valid command")
             commandSuccess = False
+
     if timePasses == True:
         updater.updateAll()
-
-    
-
-
